@@ -24,6 +24,8 @@ class BisonXmlReader:
         self.file_path = file_path
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
+
+    def read(self):
         # get rules list
         rules_element = self.root.find("grammar/rules")
         # rule_list: {lhs: '', rhs: []} []
@@ -34,19 +36,38 @@ class BisonXmlReader:
                 rhs_element = rule_element.find("rhs")
                 if lhs_element is not None and rhs_element is not None:
                     rule_list.append({"lhs":[lhs_element.text or ''],"rhs":[element.text or '' for element in list(rhs_element or [])]})
-        print("rule_list ", rule_list)
-        self.rule_left_hand_side_symbol = [rule.get("lhs") for rule in rule_list]
-        print("self.rule_left_hand_side_symbol ", self.rule_left_hand_side_symbol)
-        self.rule_right_hand_side_symbol_num = [len(rule.get("rhs") or []) for rule in rule_list]
-        print("self.rule_right_hand_side_symbol_num ", self.rule_right_hand_side_symbol_num)
+        # [rule.get("lhs") for rule in rule_list]
+        self.rule_left_hand_side_symbol = []
+        for rule in rule_list:
+            if rule is not None:
+                lhs_list = rule.get("lhs")
+                if lhs_list is None:
+                    lhs_list = [""]
+                self.rule_left_hand_side_symbol.append(lhs_list[0])
+        # need handle below case
+        # <rhs>
+        #   <empty/>
+        # </rhs>
+        # the empty tag would be ''
+        self.rule_right_hand_side_symbol_num = []        
+        for rule in rule_list:
+            rhs_list = rule.get("rhs")
+            if rhs_list is not None:
+                if rhs_list[0] == '':
+                    self.rule_right_hand_side_symbol_num.append(0)
+                else:
+                    self.rule_right_hand_side_symbol_num.append(len(rhs_list))
+            else:
+                raise ValueError("no rhs list")
+        # self.rule_right_hand_side_symbol_num = [len(rule.get("rhs") or []) for rule in rule_list]
 
         # get terminal symbol list
-        terminal_symbol_list = []
+        self.terminal_symbol_list = []
         terminals_element = self.root.find("grammar/terminals")
         if terminals_element:
             for terminal_element in terminals_element:
-                terminal_symbol_list.append({'name': terminal_element.get("name"), 'symbol_number': terminal_element.get("symbol-number"), 'token_number': terminal_element.get("token-number")})
-        pprint(terminal_symbol_list)
+                self.terminal_symbol_list.append({'name': terminal_element.get("name"), 'symbol_number': terminal_element.get("symbol-number"), 'token_number': terminal_element.get("token-number")})
+        # pprint(terminal_symbol_list)
 
         # get nonterminal symbol list
         non_terminal_symbol_list = []
@@ -54,13 +75,13 @@ class BisonXmlReader:
         if non_terminals_element:
             for non_terminal_element in non_terminals_element:
                 non_terminal_symbol_list.append({'name': non_terminal_element.get("name"), 'symbol_number': non_terminal_element.get("symbol-number")})
-        pprint(non_terminal_symbol_list)
+        # pprint(non_terminal_symbol_list)
 
         # get action_table and goto_table
         self.action_table: Dict[str, List[Union[str,None]]] = {}
         self.goto_table:Dict[str, List[Union[str,None]]]  = {}
 
-        for terminal in terminal_symbol_list:
+        for terminal in self.terminal_symbol_list:
             self.action_table[terminal.get("name")] = []
         for non_terminal in non_terminal_symbol_list:
             self.goto_table[non_terminal.get("name")] = []
@@ -88,21 +109,37 @@ class BisonXmlReader:
                         if symbol_name == "$default":
                             # fill remain place with r<rule num> or accept
                             if rule == "accept":
-                                for terminal in terminal_symbol_list:
+                                for terminal in self.terminal_symbol_list:
                                     terminal_name = terminal.get("name")
                                     if check_list_item_none(self.action_table[terminal_name],cur_state_num):
                                         insert_fill_none(self.action_table[terminal_name],cur_state_num, "accept")
                             else:
-                                 for terminal in terminal_symbol_list:
+                                 for terminal in self.terminal_symbol_list:
                                     terminal_name = terminal.get("name")
                                     if check_list_item_none(self.action_table[terminal_name],cur_state_num):
                                         insert_fill_none(self.action_table[terminal_name],cur_state_num, "r" + rule)
-        
-        print("==================")
-        pprint(self.action_table)
-        print("==================")
-        pprint(self.goto_table)
-
-
-
-bison_xml_reader = BisonXmlReader("../grammar/parentheses_grammar.xml")
+                        else:
+                            insert_fill_none(self.action_table[symbol_name],cur_state_num, "r" + rule)
+    def translate_tokens_to_bison_internal_num(self, tokens: List[int]):
+        translate_tokens = []
+        for token in tokens:
+            cur_token_num = token
+            matches = [t for t in self.terminal_symbol_list if int(t.get("token_number")) == cur_token_num]
+            if len(matches) > 0:
+                translate_tokens.append(int(matches[0].get("symbol_number")))
+            else:
+                raise ValueError("no match element")
+        return translate_tokens
+    
+    def translate_tokens_to_bison_str(self, tokens: List[int]):
+        translate_tokens = []
+        for token in tokens:
+            cur_token_num = token
+            matches = [t for t in self.terminal_symbol_list if int(t.get("token_number")) == cur_token_num]
+            if len(matches) > 0:
+                translate_tokens.append(matches[0].get("name"))
+            else:
+                raise ValueError("no match element")
+        return translate_tokens
+# example usage
+# bison_xml_reader = BisonXmlReader("../grammar/parentheses/parentheses_grammar.xml")
