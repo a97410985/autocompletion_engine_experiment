@@ -1,6 +1,7 @@
 from typing import Dict, List, Union
 
-from bison_xml_reader import TranslatedLexerTokenInfo
+from bison_xml_reader import TranslatedLexerTokenInfoWithMatchRule, WordInfo
+from name_resolution_utils import get_type_of_name_token_by_match_rule
 
 
 class AutocompletionEngine:
@@ -10,24 +11,32 @@ class AutocompletionEngine:
         goto_table: Dict[str, List[Union[str, None]]],
         rule_left_hand_side_symbol: List[str],
         rule_right_hand_side_symbol_num: List[int],
-        fancy_tokens: List[TranslatedLexerTokenInfo],
+        fancy_tokens: List[TranslatedLexerTokenInfoWithMatchRule],
     ) -> None:
         self.action_table = action_table
         self.goto_table = goto_table
         self.rule_left_hand_side_symbol = rule_left_hand_side_symbol
         self.rule_right_hand_side_symbol_num = rule_right_hand_side_symbol_num
-        self.stack: List[Union[int, TranslatedLexerTokenInfo]] = [0]
+        self.stack: List[Union[int,
+                               TranslatedLexerTokenInfoWithMatchRule]] = [0]
         self.cur_word_index = 0
         self.fancy_tokens = fancy_tokens
+        self.final_tokens: List[TranslatedLexerTokenInfoWithMatchRule] = []
 
     def reduce(self, cur_action: str):
         num = int(cur_action[1:])
         # pop stack
         pop_num = self.rule_right_hand_side_symbol_num[num]
         if pop_num != 0:
+            index = 0
             for element in self.stack[-pop_num * 2:]:
-                if type(element) is not int:
+                if type(element) is dict:
+                    record_token = element.copy()
+                    record_token["match_rule"] = num
+                    record_token["match_index"] = index
+                    self.final_tokens.append(record_token)
                     print("pop : ", element)
+                    index += 1
             del self.stack[-pop_num * 2:]
         temp_state = self.stack[-1]
         if type(temp_state) is not int:
@@ -36,8 +45,8 @@ class AutocompletionEngine:
         # push reduced symbol
         reduced_symbol = self.rule_left_hand_side_symbol[num]
         print("reduced_symbol : ", reduced_symbol)
-        fancy_reduced_symbol = TranslatedLexerTokenInfo(text="", token_str=reduced_symbol,
-                                                        first_line=0, first_column=0, last_line=0, last_column=0)
+        fancy_reduced_symbol = TranslatedLexerTokenInfoWithMatchRule(text="", token_str=reduced_symbol,
+                                                                     first_line=0, first_column=0, last_line=0, last_column=0, match_rule=-1, match_index=-1)
         self.stack.append(fancy_reduced_symbol)
         # push state
         state_num = self.goto_table[reduced_symbol][state]
@@ -101,6 +110,14 @@ class AutocompletionEngine:
                 return True
         return True
 
+    def get_introspection_list(self):
+        name_resolution_list: List[WordInfo] = []
+        result = filter(lambda t: t["token_str"] == "NAME",
+                        self.final_tokens)
+        for token in list(result):
+            name_resolution_list.append(WordInfo(text=token["text"], token_str=token["token_str"], first_line=token["first_line"], first_column=token["first_column"], last_line=token["last_line"], last_column=token["last_column"], match_rule=token["match_rule"], match_index=token["match_index"], kind=get_type_of_name_token_by_match_rule(
+                token["match_rule"], token["match_index"])))
+        return name_resolution_list
     # def get_suggestion_by_state(self, state_num: int) -> List[str]:
     #     # find state state_num for what symbol has shift action in that state.
     #     # So we can sugesttion that

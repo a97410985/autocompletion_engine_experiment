@@ -166,16 +166,16 @@ create table test2.haha (a int);
 ```text
   147 create_definition: $@1 NAME data_type column_atts
 ```
-NAME token woulbe be `column`
+NAME token would be `column`
 
 #### rule 221, 223
-These rule is not very precise. Expr symbol can be used by construct many symbol like opt_where, groupby_list, opt_having... , 
-so maybe NAME token can be different. But we just use one level rule to resolute NAME token. If there are many error case. Then we need to consider use more level to resolute.
+This rule is not very precise. Expr symbol can be used by construct many symbols like opt_where, groupby_list, opt_having..., 
+so maybe the NAME token can be different. But we just use one level rule to resolute NAME token. If there are many error cases. Then we need to consider using more levels to resolute.
 
 ```text
   221 expr: NAME
 ```
-NAME token woulbe be `column`
+NAME token would be `column`
 
 ```text
   223 expr: NAME '.' NAME
@@ -185,3 +185,7 @@ second NAME token would be `column`
 
 #### rule 264
 not knowing it would be what kind of symbol
+```sql
+"SELECT MIN(Price) AS SmallestPrice FROM Products;"
+```
+The MIN word is NAME token as an above command. SO rule 264 would be resolved to function name.

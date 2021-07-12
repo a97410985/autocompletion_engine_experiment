@@ -14,6 +14,29 @@ class TranslatedLexerTokenInfo(TypedDict):
     last_column: int
 
 
+class TranslatedLexerTokenInfoWithMatchRule(TypedDict):
+    text: str
+    token_str: str
+    first_line: int
+    first_column: int
+    last_line: int
+    last_column: int
+    match_rule: int
+    match_index: int
+
+
+class WordInfo(TypedDict):
+    text: str
+    token_str: str
+    first_line: int
+    first_column: int
+    last_line: int
+    last_column: int
+    match_rule: int
+    match_index: int
+    kind: str
+
+
 def insert_fill_none(my_list: List[Union[str, None]], pos: int, value: str):
     if len(my_list) <= pos:
         my_list.extend([None] * (pos - len(my_list)))
@@ -167,13 +190,14 @@ class BisonXmlReader:
         return translate_tokens
 
     def translate_fancy_tokens_token_num_to_bison_str(self, fancy_tokens: List[LexerTokenInfo]):
-        translated_fancy_tokens: List[TranslatedLexerTokenInfo] = []
+        translated_fancy_tokens: List[TranslatedLexerTokenInfoWithMatchRule] = [
+        ]
         tokens = [token.get("token_num") for token in fancy_tokens]
         translate_tokens = self.translate_tokens_to_bison_str(tokens)
         for index, fancy_token in enumerate(fancy_tokens):
-            translated_fancy_token: TranslatedLexerTokenInfo = TranslatedLexerTokenInfo(text=fancy_token.get("text"), token_str=translate_tokens[index],
-                                                                                        first_line=fancy_token.get("first_line"), first_column=fancy_token.get("first_column"),
-                                                                                        last_line=fancy_token.get("last_line"), last_column=fancy_token.get("last_column"),)
+            translated_fancy_token: TranslatedLexerTokenInfoWithMatchRule = TranslatedLexerTokenInfoWithMatchRule(text=fancy_token.get("text"), token_str=translate_tokens[index],
+                                                                                                                  first_line=fancy_token.get("first_line"), first_column=fancy_token.get("first_column"),
+                                                                                                                  last_line=fancy_token.get("last_line"), last_column=fancy_token.get("last_column"), match_rule=-1, match_index=-1)
             translated_fancy_tokens.append(translated_fancy_token)
         return translated_fancy_tokens
 
