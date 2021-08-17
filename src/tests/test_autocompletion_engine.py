@@ -134,15 +134,27 @@ class Test:
                 "table", "table", "column", "table", "column"]
         )
 
-    # def test_instrospection_select_statement_with_having(self, bison_xml_reader, lexer_caller):
-    #     command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country HAVING COUNT(CustomerID) > 5;"
-    #     autocompletion_engine = self.create_autocompletion_engine(
-    #         command, lexer_caller, bison_xml_reader)
-    #     autocompletion_engine.LR_1_parsing()
-    #     result_list = autocompletion_engine.get_introspection_list()
-    #     print(self.get_kind_list(result_list))
-    #     unittest.TestCase().assertListEqual(
-    #         self.get_kind_list(result_list),
-    #         ["function", "column", "column", "table", "column",
-    #             "function", "column"]
-    #     )
+    def test_instrospection_select_statement_with_having(self, bison_xml_reader, lexer_caller):
+        command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country HAVING COUNT(CustomerID) > 5;"
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        autocompletion_engine.LR_1_parsing()
+        result_list = autocompletion_engine.get_introspection_list()
+        print(self.get_kind_list(result_list))
+        unittest.TestCase().assertListEqual(
+            self.get_kind_list(result_list),
+            ["function", "column", "column", "table", "column",
+                "function", "column"]
+        )
+
+    def test_instrospection_select_statement_with_special_function(self, bison_xml_reader, lexer_caller):
+        command = "SELECT SUBSTRING(CustomerName, 1, 5) AS ExtractString FROM Customers;;"
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        autocompletion_engine.LR_1_parsing()
+        result_list = autocompletion_engine.get_introspection_list()
+        print(self.get_kind_list(result_list))
+        unittest.TestCase().assertListEqual(
+            self.get_kind_list(result_list),
+            ["function", "column", "alias", "table"]
+        )

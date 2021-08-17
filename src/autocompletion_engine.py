@@ -112,11 +112,16 @@ class AutocompletionEngine:
 
     def get_introspection_list(self):
         name_resolution_list: List[WordInfo] = []
-        result = filter(lambda t: t["token_str"] == "NAME",
+        # add special function
+        result = filter(lambda t: t["token_str"] in ["NAME", "FCOUNT", "FSUBSTRING", "FDATE_ADD", "FDATE_SUB"],
                         self.final_tokens)
         for token in list(result):
-            name_resolution_list.append(WordInfo(text=token["text"], token_str=token["token_str"], first_line=token["first_line"], first_column=token["first_column"], last_line=token["last_line"], last_column=token["last_column"], match_rule=token["match_rule"], match_index=token["match_index"], kind=get_type_of_name_token_by_match_rule(
-                token["match_rule"], token["match_index"])))
+            name_resolution_list.append(WordInfo(text=token["text"], token_str=token["token_str"],
+                                                 first_line=token["first_line"], first_column=token["first_column"],
+                                                 last_line=token["last_line"], last_column=token["last_column"],
+                                                 match_rule=token["match_rule"], match_index=token["match_index"],
+                                                 kind=get_type_of_name_token_by_match_rule(token,
+                                                                                           token["match_rule"], token["match_index"])))
         return name_resolution_list
     # def get_suggestion_by_state(self, state_num: int) -> List[str]:
     #     # find state state_num for what symbol has shift action in that state.
