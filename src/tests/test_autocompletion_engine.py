@@ -2,7 +2,7 @@ from typing import List
 import pytest
 import unittest
 
-from autocompletion_engine import AutocompletionEngine
+from autocompletion_engine import AutocompletionEngine, Pos
 from bison_xml_reader import BisonXmlReader, TranslatedLexerTokenInfoWithMatchRule, WordInfo
 from lexer_caller import LexerCaller
 
@@ -148,7 +148,7 @@ class Test:
         )
 
     def test_instrospection_select_statement_with_special_function(self, bison_xml_reader, lexer_caller):
-        command = "SELECT SUBSTRING(CustomerName, 1, 5) AS ExtractString FROM Customers;;"
+        command = "SELECT SUBSTRING(CustomerName, 1, 5) AS ExtractString FROM Customers;"
         autocompletion_engine = self.create_autocompletion_engine(
             command, lexer_caller, bison_xml_reader)
         autocompletion_engine.LR_1_parsing()
@@ -158,3 +158,21 @@ class Test:
             self.get_kind_list(result_list),
             ["function", "column", "alias", "table"]
         )
+
+    def test_stop_pos(self, bison_xml_reader, lexer_caller):
+        command = "SELECT a from b;"
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        autocompletion_engine.LR_1_parsing(stop_pos=Pos(line=1,column=7))
+        autocompletion_engine.get_introspection_list()
+        assert autocompletion_engine.cur_word_index == 1
+
+    def test_call_LR_1_parsing_multi_times(self, bison_xml_reader, lexer_caller):
+        command = "SELECT a from b;"
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        autocompletion_engine.LR_1_parsing()
+        result_list = autocompletion_engine.get_introspection_list()
+        autocompletion_engine.LR_1_parsing()
+        result_list2 = autocompletion_engine.get_introspection_list()
+        assert result_list == result_list2

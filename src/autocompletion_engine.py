@@ -1,10 +1,24 @@
-from typing import Dict, List, Union
+from typing import Dict, List, TypedDict, Union
 
 from bison_xml_reader import TranslatedLexerTokenInfoWithMatchRule, WordInfo
 from name_resolution_utils import get_type_of_name_token_by_match_rule
 
+class WordPos(TypedDict):
+    first_line: int
+    first_column: int
+    last_line: int
+    last_column: int
+
+class Pos(TypedDict):
+    line: int
+    column: int
 
 class AutocompletionEngine:
+    def reset_variables(self):
+        self.stack: List[Union[int,
+                               TranslatedLexerTokenInfoWithMatchRule]] = [0]
+        self.cur_word_index = 0
+        self.final_tokens: List[TranslatedLexerTokenInfoWithMatchRule] = []
     def __init__(
         self,
         action_table: Dict[str, List[Union[str, None]]],
@@ -19,9 +33,8 @@ class AutocompletionEngine:
         self.rule_right_hand_side_symbol_num = rule_right_hand_side_symbol_num
         self.stack: List[Union[int,
                                TranslatedLexerTokenInfoWithMatchRule]] = [0]
-        self.cur_word_index = 0
         self.fancy_tokens = fancy_tokens
-        self.final_tokens: List[TranslatedLexerTokenInfoWithMatchRule] = []
+        self.reset_variables()
 
     def reduce(self, cur_action: str):
         num = int(cur_action[1:])
@@ -55,11 +68,10 @@ class AutocompletionEngine:
         else:
             self.stack.append(int(state_num))
 
-    # return True represent full parsing. return False represent failed on parsing
-    def LR_1_parsing(self):
+    # return True represent completing parsing target . return False represent failed on parsing
+    def LR_1_parsing(self, stop_pos: Pos = None):
         # reset to initial
-        self.stack = [0]
-        self.cur_word_index = 0
+        self.reset_variables()
 
         while True:
             state = self.stack[-1]
@@ -108,6 +120,10 @@ class AutocompletionEngine:
             elif cur_action == "accept":
                 print("accept")
                 return True
+            if stop_pos:
+                if (stop_pos["line"] <= cur_token["first_line"] and 
+                    cur_token["first_column"] <= stop_pos["column"] <= stop_pos["column"]):
+                    return True
         return True
 
     def get_introspection_list(self):
@@ -123,6 +139,13 @@ class AutocompletionEngine:
                                                  kind=get_type_of_name_token_by_match_rule(token,
                                                                                            token["match_rule"], token["match_index"])))
         return name_resolution_list
+    # if no state return -1
+    def get_last_state(self):
+        if len(self.stack) == 0:
+            return -1
+        if isinstance(self.stack[-1], int):
+            return self.stack[-1]
+        return -1
     # def get_suggestion_by_state(self, state_num: int) -> List[str]:
     #     # find state state_num for what symbol has shift action in that state.
     #     # So we can sugesttion that
