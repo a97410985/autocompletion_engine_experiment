@@ -30,13 +30,18 @@ class LexerCaller():
         c_lib.yy_scan_string(ctypes.c_char_p(text.encode("utf-8")))
         tokens = []
         result = token_num = c_lib.yylex()
+        first_time = True
+        first_token_start_column = 0
         while result:
+            if first_time:
+                first_token_start_column = c_lib.get_first_column()
+                first_time = False
             token: LexerTokenInfo = LexerTokenInfo(text=c_lib.yyget_text().decode("utf-8"),
                                                    token_num=token_num,
                                                    first_line=c_lib.get_first_line(),
-                                                   first_column=c_lib.get_first_column(),
+                                                   first_column=c_lib.get_first_column() - first_token_start_column,
                                                    last_line=c_lib.get_last_line(),
-                                                   last_column=c_lib.get_last_column())
+                                                   last_column=c_lib.get_last_column() - first_token_start_column)
 
             tokens.append(token)
             # print("text: ", c_lib.yyget_text())
@@ -52,5 +57,4 @@ class LexerCaller():
             #     text = c_lib.yyget_text()
             #     print(f"token's num : {result}")
             result = token_num = c_lib.yylex()
-
         return tokens

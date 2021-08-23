@@ -121,8 +121,8 @@ class AutocompletionEngine:
                 print("accept")
                 return True
             if stop_pos:
-                if (stop_pos["line"] <= cur_token["first_line"] and 
-                    cur_token["first_column"] <= stop_pos["column"] <= stop_pos["column"]):
+                if (stop_pos["line"] == cur_token["first_line"] and 
+                    cur_token["first_column"] <= stop_pos["column"] <= cur_token["last_column"]):
                     return True
         return True
 
