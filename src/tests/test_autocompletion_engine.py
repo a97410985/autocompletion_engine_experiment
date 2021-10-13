@@ -24,7 +24,8 @@ class Test:
                                                                              first_line=0, first_column=0, last_line=0, last_column=0, match_rule=-1, match_index=-1))
 
         return AutocompletionEngine(bison_xml_reader.action_table, bison_xml_reader.goto_table,
-                                    bison_xml_reader.rule_left_hand_side_symbol, bison_xml_reader.rule_right_hand_side_symbol_num, translated_fancy_tokens)
+                                    bison_xml_reader.rule_left_hand_side_symbol, bison_xml_reader.rule_right_hand_side_symbol,
+                                    bison_xml_reader.state_rule_set_list, bison_xml_reader.terminal_symbol_name_list, translated_fancy_tokens)
 
     @pytest.fixture()
     def bison_xml_reader(self):
@@ -163,7 +164,7 @@ class Test:
         command = "SELECT a from b;"
         autocompletion_engine = self.create_autocompletion_engine(
             command, lexer_caller, bison_xml_reader)
-        autocompletion_engine.LR_1_parsing(stop_pos=Pos(line=1,column=7))
+        autocompletion_engine.LR_1_parsing(stop_pos=Pos(line=1, column=7))
         autocompletion_engine.get_introspection_list()
         assert autocompletion_engine.cur_word_index == 1
 

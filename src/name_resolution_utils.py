@@ -1,8 +1,8 @@
 from bison_xml_reader import TranslatedLexerTokenInfoWithMatchRule
 
 
-def get_type_of_name_token_by_match_rule(token: TranslatedLexerTokenInfoWithMatchRule, rule_num: int, match_index: int):
-    if token["token_str"] in ["FCOUNT", "FCOUNT", "FSUBSTRING", "FDATE_ADD", "FDATE_SUB"]:
+def get_type_of_name_token_by_match_rule(token_type: str, rule_num: int, match_index: int):
+    if token_type in ["FCOUNT", "FCOUNT", "FSUBSTRING", "FDATE_ADD", "FDATE_SUB"]:
         return "function"
     database_rule = [133, 134]
     table_rule = [45, 83, 89, 90, 95, 120, 121, 122, 138, 140, 141]

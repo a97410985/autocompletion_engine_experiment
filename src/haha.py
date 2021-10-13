@@ -1,4 +1,4 @@
-from autocompletion_engine import AutocompletionEngine
+from autocompletion_engine import AutocompletionEngine, Pos
 from bison_xml_reader import BisonXmlReader, TranslatedLexerTokenInfoWithMatchRule
 from lexer_caller import LexerCaller
 from pprint import pprint
@@ -11,8 +11,13 @@ bison_xml_reader.read()
 lexer_caller = LexerCaller(
     "/home/autocompletion_engine_experiment/src/libpmysql.so")
 
-command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country HAVING COUNT(CustomerID) > 5;"
+# command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country HAVING COUNT(CustomerID) > 5;"
+# command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY "
+# command = "SELECT col1, col2 from tabl1"
 # command = "update customers set ContactName='Alfred Schmidt', City='Frankfurt' WHERE CustomerID=1;"
+command = "SELECT max"
+# command = "select max(col1),"
+
 tokens = lexer_caller.get_tokens(command)
 # pprint(tokens)
 
@@ -25,14 +30,13 @@ translated_fancy_tokens.append(TranslatedLexerTokenInfoWithMatchRule(text="$end"
 # pprint(translated_fancy_tokens)
 
 autocompletion_engine = AutocompletionEngine(bison_xml_reader.action_table, bison_xml_reader.goto_table,
-                                             bison_xml_reader.rule_left_hand_side_symbol, bison_xml_reader.rule_right_hand_side_symbol_num, translated_fancy_tokens)
-autocompletion_engine.LR_1_parsing()
-print("final_tokens")
-result = filter(lambda t: t["token_str"] == "NAME",
-                autocompletion_engine.final_tokens)
-pprint(autocompletion_engine.final_tokens)
-# print("==============================================================")
-# for token in list(result):
+                                             bison_xml_reader.rule_left_hand_side_symbol, bison_xml_reader.rule_right_hand_side_symbol,
+                                             bison_xml_reader.state_rule_set_list, bison_xml_reader.terminal_symbol_name_list, translated_fancy_tokens)
+
+print(autocompletion_engine.get_suggestion(Pos(column=len(
+    "select max"), line=1)))
+print("==============================================================")
+# for token in list(result):d
 #     print(token["text"] + " : " + get_type_of_name_token_by_match_rule(
 #         token["match_rule"], token["match_index"]))
 

@@ -37,6 +37,11 @@ class WordInfo(TypedDict):
     kind: str
 
 
+class RuleMatchInfo(TypedDict):
+    number: int
+    point: int
+
+
 def insert_fill_none(my_list: List[Union[str, None]], pos: int, value: str):
     if len(my_list) <= pos:
         my_list.extend([None] * (pos - len(my_list)))
@@ -86,23 +91,26 @@ class BisonXmlReader:
         #   <empty/>
         # </rhs>
         # the empty tag would be ''
-        self.rule_right_hand_side_symbol_num = []
+        self.rule_right_hand_side_symbol = []
         for rule in rule_list:
             rhs_list = rule.get("rhs")
             if rhs_list is not None:
                 if rhs_list[0] == '':
-                    self.rule_right_hand_side_symbol_num.append(0)
+                    self.rule_right_hand_side_symbol.append([])
                 else:
-                    self.rule_right_hand_side_symbol_num.append(len(rhs_list))
+                    self.rule_right_hand_side_symbol.append(rhs_list)
             else:
                 raise ValueError("no rhs list")
         # self.rule_right_hand_side_symbol_num = [len(rule.get("rhs") or []) for rule in rule_list]
 
         # get terminal symbol list
         self.terminal_symbol_list = []
+        self.terminal_symbol_name_list = []
         terminals_element = self.root.find("grammar/terminals")
         if terminals_element:
             for terminal_element in terminals_element:
+                self.terminal_symbol_name_list.append(
+                    terminal_element.get("name"))
                 self.terminal_symbol_list.append({'name': terminal_element.get("name"), 'symbol_number': terminal_element.get(
                     "symbol-number"), 'token_number': terminal_element.get("token-number")})
         # pprint(terminal_symbol_list)
@@ -119,6 +127,7 @@ class BisonXmlReader:
         # get action_table and goto_table
         self.action_table: Dict[str, List[Union[str, None]]] = {}
         self.goto_table: Dict[str, List[Union[str, None]]] = {}
+        self.state_rule_set_list: List[List[RuleMatchInfo]] = []
 
         for terminal in self.terminal_symbol_list:
             self.action_table[terminal.get("name")] = []
@@ -164,6 +173,18 @@ class BisonXmlReader:
                         else:
                             insert_fill_none(
                                 self.action_table[symbol_name], cur_state_num, "r" + rule)
+                rule_set_element = state_element.find("itemset")
+                if rule_set_element:
+                    rule_set = []
+                    for rule_element in rule_set_element:
+                        rule_number = int(
+                            rule_element.get("rule-number") or -1)
+                        point = int(rule_element.get("point") or -1)
+                        rule_set.append(RuleMatchInfo(
+                            number=rule_number, point=point))
+                    self.state_rule_set_list.append(rule_set)
+                else:
+                    self.state_rule_set_list.append([])
 
     def translate_tokens_to_bison_internal_num(self, tokens: List[int]):
         translate_tokens = []
