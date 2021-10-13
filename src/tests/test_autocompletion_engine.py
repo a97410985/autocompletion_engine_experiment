@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 import pytest
 import unittest
@@ -30,14 +31,16 @@ class Test:
     @pytest.fixture()
     def bison_xml_reader(self):
         bison_xml_reader = BisonXmlReader(
-            "/home/autocompletion_engine_experiment/grammar/pmysql/pmysql.xml")
+            str(Path(__file__).parent.absolute().parent.absolute().parent.absolute()) +
+            "/grammar/pmysql/pmysql.xml")
         bison_xml_reader.read()
         yield bison_xml_reader
 
     @pytest.fixture()
     def lexer_caller(self):
         lexer_caller = LexerCaller(
-            "/home/autocompletion_engine_experiment/src/libpmysql.so")
+            str(Path(__file__).parent.absolute().parent.absolute().parent.absolute()) +
+            "/src/libpmysql.so")
         yield lexer_caller
 
     def test_instrospection_for_full_match(self, bison_xml_reader, lexer_caller):
@@ -177,3 +180,63 @@ class Test:
         autocompletion_engine.LR_1_parsing()
         result_list2 = autocompletion_engine.get_introspection_list()
         assert result_list == result_list2
+
+    def test_autocompletion_get_suggestion_at_select_statement_and_after_database(self, bison_xml_reader, lexer_caller):
+        command = "select col1 from db1."
+        suggest_pos = len("select col1 from db1.")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        assert result["name_type"] == ["table"]
+        assert result["terminal_symbol"] == []
+
+    def test_autocompletion_get_suggestion_at_select_statement_and_after_database_2(self, bison_xml_reader, lexer_caller):
+        command = "select col1 from db1."
+        suggest_pos = len("select col1 from db1.tabl")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        assert result["name_type"] == ["table"]
+        assert result["terminal_symbol"] == []
+
+    def test_autocompletion_get_suggestion_at_select_statement_and_after_column(self, bison_xml_reader, lexer_caller):
+        command = "select col1 "
+        suggest_pos = len("select col1 ")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        print(result)
+        assert result["name_type"] == ["alias"]
+        assert set(["AS", "';'", "'.'", "','", "'('", "FROM", "LIKE"]).issubset(result["terminal_symbol"])
+
+
+    def test_autocompletion_get_suggestion_at_select_statement_and_after_select(self, bison_xml_reader, lexer_caller):
+        command = "select "
+        suggest_pos = len("select ")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        print(result)
+        assert set(result["name_type"]) == set(["function", "table", "column"])
+        assert set(["DISTINCT", "HIGH_PRIORITY", "SQL_CALC_FOUND_ROWS"]).issubset(result["terminal_symbol"])
+
+    def test_autocompletion_get_suggestion_at_select_statement_and_function_left_parent(self, bison_xml_reader, lexer_caller):
+        command = "select max("
+        suggest_pos = len("select max(")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        print(result)
+        assert set(result["name_type"]) == set(["function", "table", "column"])
+        assert set(["FDATE_ADD", "FDATE_SUB", "FTRIM"]).issubset(result["terminal_symbol"])
+
+    def test_autocompletion_get_suggestion_at_insert_into_statement_after_insert_into(self, bison_xml_reader, lexer_caller):
+        command = "insert into "
+        suggest_pos = len("insert into ")
+        autocompletion_engine = self.create_autocompletion_engine(
+            command, lexer_caller, bison_xml_reader)
+        result = autocompletion_engine.get_suggestion(Pos(line=1, column=suggest_pos))
+        print(result)
+        assert set(result["name_type"]) == set(["table", "database"])
+        assert result["terminal_symbol"] == []       
+ 

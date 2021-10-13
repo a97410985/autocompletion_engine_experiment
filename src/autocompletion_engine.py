@@ -30,6 +30,7 @@ class AutocompletionEngine:
         self.final_tokens: List[TranslatedLexerTokenInfoWithMatchRule] = []
         self.last_shift_state = 0
         self.last_reduce_rules: List[int] = []
+        self.last_reduce_states: List[int] = []
 
     def __init__(
         self,
@@ -55,6 +56,7 @@ class AutocompletionEngine:
     def reduce(self, cur_action: str):
         num = int(cur_action[1:])
         self.last_reduce_rules.append(num)
+        self.last_reduce_states.append(self.stack[-1])
         # pop stack
         pop_num = len(self.rule_right_hand_side_symbol[num])
         if pop_num != 0:
@@ -99,6 +101,8 @@ class AutocompletionEngine:
             cur_action = self.action_table[cur_word][state]
             if cur_action and cur_action.startswith("r"):
                 pass
+            elif cur_token["token_str"].startswith("'") and cur_token["token_str"].endswith("'"):
+                pass
             elif stop_pos:
                 if (stop_pos["line"] == cur_token["first_line"] and
                         cur_token["first_column"] <= stop_pos["column"] <= cur_token["last_column"]):
@@ -137,6 +141,7 @@ class AutocompletionEngine:
                 num = int(cur_action[1:])
                 self.last_shift_state = num
                 self.last_reduce_rules = []
+                self.last_reduce_states = []
                 # push symbol
                 self.stack.append(cur_token)
                 # push state
@@ -177,8 +182,13 @@ class AutocompletionEngine:
         last_shift_state = self.last_shift_state
         terminal_symbol = set()
         name_type_list = set()
-        for match_rule in self.state_rule_set_list[last_shift_state]:
-            if len(self.rule_right_hand_side_symbol[match_rule["number"]]) > 0:
+        all_rule_set = []
+        all_rule_set.extend(self.state_rule_set_list[last_shift_state])
+        for s in self.last_reduce_states:
+            all_rule_set.extend(self.state_rule_set_list[s])
+        for match_rule in all_rule_set:
+            if len(self.rule_right_hand_side_symbol[match_rule["number"]]) > 0 and len(self.rule_right_hand_side_symbol[match_rule["number"]
+                                                               ]) > match_rule["point"]:
                 symbol_type = self.rule_right_hand_side_symbol[match_rule["number"]
                                                                ][match_rule["point"]]
                 if symbol_type == "NAME":
@@ -193,7 +203,8 @@ class AutocompletionEngine:
             last_state = self.get_last_state()
             if isinstance(last_state, int):
                 for match_rule in self.state_rule_set_list[last_state]:
-                    if len(self.rule_right_hand_side_symbol[match_rule["number"]]) > 0:
+                    if len(self.rule_right_hand_side_symbol[match_rule["number"]]) > 0 and len(self.rule_right_hand_side_symbol[match_rule["number"]
+                                                               ]) > match_rule["point"]:
                         symbol_type = self.rule_right_hand_side_symbol[match_rule["number"]
                                                                        ][match_rule["point"]]
                         if symbol_type == "NAME":

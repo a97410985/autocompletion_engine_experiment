@@ -4,7 +4,7 @@ from bison_xml_reader import TranslatedLexerTokenInfoWithMatchRule
 def get_type_of_name_token_by_match_rule(token_type: str, rule_num: int, match_index: int):
     if token_type in ["FCOUNT", "FCOUNT", "FSUBSTRING", "FDATE_ADD", "FDATE_SUB"]:
         return "function"
-    database_rule = [133, 134]
+    database_rule = [113, 114, 133, 134]
     table_rule = [45, 83, 89, 90, 95, 120, 121, 122, 138, 140, 141]
     column_rule = [26, 27, 79, 80, 115, 116, 117, 118, 128, 130, 147, 221]
     function_rule = [264]

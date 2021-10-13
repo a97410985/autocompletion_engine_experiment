@@ -1,3 +1,4 @@
+from pathlib import Path
 from autocompletion_engine import AutocompletionEngine, Pos
 from bison_xml_reader import BisonXmlReader, TranslatedLexerTokenInfoWithMatchRule
 from lexer_caller import LexerCaller
@@ -5,18 +6,13 @@ from pprint import pprint
 
 from name_resolution_utils import get_type_of_name_token_by_match_rule
 
-bison_xml_reader = BisonXmlReader(
-    "/home/autocompletion_engine_experiment/grammar/pmysql/pmysql.xml")
+bison_xml_reader = BisonXmlReader(str(Path(__file__).parent.absolute().parent.absolute()) +
+    "/grammar/pmysql/pmysql.xml")
 bison_xml_reader.read()
-lexer_caller = LexerCaller(
-    "/home/autocompletion_engine_experiment/src/libpmysql.so")
+lexer_caller = LexerCaller(str(Path(__file__).parent.absolute().parent.absolute()) +
+    "/src/libpmysql.so")
 
-# command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country HAVING COUNT(CustomerID) > 5;"
-# command = "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY "
-# command = "SELECT col1, col2 from tabl1"
-# command = "update customers set ContactName='Alfred Schmidt', City='Frankfurt' WHERE CustomerID=1;"
-command = "SELECT max"
-# command = "select max(col1),"
+command = "SELECT col1 "
 
 tokens = lexer_caller.get_tokens(command)
 # pprint(tokens)
@@ -34,7 +30,7 @@ autocompletion_engine = AutocompletionEngine(bison_xml_reader.action_table, biso
                                              bison_xml_reader.state_rule_set_list, bison_xml_reader.terminal_symbol_name_list, translated_fancy_tokens)
 
 print(autocompletion_engine.get_suggestion(Pos(column=len(
-    "select max"), line=1)))
+    "SELECT col1 "), line=1)))
 print("==============================================================")
 # for token in list(result):d
 #     print(token["text"] + " : " + get_type_of_name_token_by_match_rule(
